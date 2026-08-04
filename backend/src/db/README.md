@@ -6,8 +6,9 @@ PostgreSQL schema for the BookWise booking platform. Plain SQL — no ORM, no mi
 
 1. Open your [Supabase](https://supabase.com) project → **SQL Editor**.
 2. Paste the contents of `schema.sql` and click **Run**.
+3. (Optional) Run `seed.sql` to insert one default business.
 
-The file uses `IF NOT EXISTS`, so re-running `schema.sql` is safe for tables and indexes that already exist.
+The schema file uses `IF NOT EXISTS`, so re-running `schema.sql` is safe.
 
 Verify in the Supabase **Table Editor** — you should see four tables: `businesses`, `users`, `appointments`, `chat_sessions`.
 
