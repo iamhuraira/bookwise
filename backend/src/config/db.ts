@@ -5,6 +5,4 @@ const pool = new pg.Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-export async function query(text, params) {
-  return pool.query(text, params);
-}
+export const query = (text: string, params?: unknown[]) => pool.query(text, params);
