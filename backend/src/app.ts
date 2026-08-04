@@ -11,6 +11,9 @@ import { requestLogger } from './middleware/logger.js';
 
 const app = express();
 
+// Render (and other reverse proxies) set X-Forwarded-For; required for rate limiting
+app.set('trust proxy', 1);
+
 const corsOrigins = [
   process.env.FRONTEND_URL,
   'http://localhost:3000',
