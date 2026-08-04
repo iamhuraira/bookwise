@@ -57,15 +57,17 @@ const ChatPageContent = () => {
     });
   }, [messages.length, pendingAction, sendMessage.isPending]);
 
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, [sessionId]);
+  const isBookingComplete = pendingAction?.type === 'booking_confirmed';
 
   useEffect(() => {
-    if (!sendMessage.isPending) {
-      inputRef.current?.focus();
-    }
-  }, [sendMessage.isPending]);
+    if (isBookingComplete) return;
+    inputRef.current?.focus();
+  }, [sessionId, isBookingComplete]);
+
+  useEffect(() => {
+    if (isBookingComplete || sendMessage.isPending) return;
+    inputRef.current?.focus();
+  }, [sendMessage.isPending, isBookingComplete]);
 
   const handleSend = (content: string) => {
     const trimmed = content.trim();
@@ -181,48 +183,50 @@ const ChatPageContent = () => {
           {sendMessage.isPending && <TypingIndicator />}
         </div>
 
-        <footer className="shrink-0 min-w-0 border-t border-gray-200 bg-white px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
-          {rateLimitNotice && (
-            <p className="mb-2 text-center text-xs text-amber-700">
-              You&apos;re sending messages too quickly — wait a moment
-            </p>
-          )}
+        {!isBookingComplete && (
+          <footer className="shrink-0 min-w-0 border-t border-gray-200 bg-white px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
+            {rateLimitNotice && (
+              <p className="mb-2 text-center text-xs text-amber-700">
+                You&apos;re sending messages too quickly — wait a moment
+              </p>
+            )}
 
-          <form onSubmit={handleSubmit} className="flex min-w-0 gap-2">
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={sendMessage.isPending}
-              placeholder="Type your message…"
-              className="min-w-0 flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 shadow-sm transition placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 disabled:opacity-60"
-            />
-            <button
-              type="submit"
-              disabled={sendMessage.isPending || !input.trim()}
-              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-white transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-60"
-              aria-label="Send message"
-            >
-              {sendMessage.isPending ? (
-                <Spinner className="text-base text-white" />
-              ) : (
-                <SendOutlined />
-              )}
-            </button>
-          </form>
+            <form onSubmit={handleSubmit} className="flex min-w-0 gap-2">
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={sendMessage.isPending}
+                placeholder="Type your message…"
+                className="min-w-0 flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 shadow-sm transition placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 disabled:opacity-60"
+              />
+              <button
+                type="submit"
+                disabled={sendMessage.isPending || !input.trim()}
+                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-white transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="Send message"
+              >
+                {sendMessage.isPending ? (
+                  <Spinner className="text-base text-white" />
+                ) : (
+                  <SendOutlined />
+                )}
+              </button>
+            </form>
 
-          <div className="mt-3 flex min-w-0 flex-col gap-1 text-center text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between sm:text-left">
-            <span className="min-w-0 break-words">Try: &quot;Book a consultation tomorrow at 2pm&quot;</span>
-            <Link
-              href="/appointments/new"
-              className="shrink-0 font-medium text-indigo-600 hover:text-indigo-700"
-            >
-              Prefer a form? Book manually
-            </Link>
-          </div>
-        </footer>
+            <div className="mt-3 flex min-w-0 flex-col gap-1 text-center text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between sm:text-left">
+              <span className="min-w-0 break-words">Try: &quot;Book a consultation tomorrow at 2pm&quot;</span>
+              <Link
+                href="/appointments/new"
+                className="shrink-0 font-medium text-indigo-600 hover:text-indigo-700"
+              >
+                Prefer a form? Book manually
+              </Link>
+            </div>
+          </footer>
+        )}
       </div>
     </div>
   );
