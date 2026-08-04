@@ -1,10 +1,9 @@
 import bcrypt from 'bcrypt';
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import { query } from '../config/db.js';
+import { DEFAULT_BUSINESS_ID } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
 import type { LoginInput, SignupInput } from '../schemas/auth.schema.js';
-
-const DEFAULT_BUSINESS_ID = '11111111-1111-1111-1111-111111111111';
 
 const USER_FIELDS = 'id, email, full_name, role, created_at';
 

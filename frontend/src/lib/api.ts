@@ -63,4 +63,7 @@ export const apiGet = <T>(path: string): Promise<T> => request<T>('GET', path);
 export const apiPost = <T>(path: string, body: unknown): Promise<T> =>
   request<T>('POST', path, body);
 
+export const apiPatch = <T>(path: string, body?: unknown): Promise<T> =>
+  request<T>('PATCH', path, body);
+
 export type { ApiError };

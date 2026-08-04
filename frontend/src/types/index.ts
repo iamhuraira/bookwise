@@ -39,3 +39,38 @@ export interface SignupInput extends LoginInput {
 export interface BusinessResponse {
   business: Business;
 }
+
+export interface Service {
+  id: string;
+  name: string;
+  durationMinutes: number;
+}
+
+export interface Appointment {
+  id: string;
+  businessId: string;
+  userId: string;
+  serviceType: string;
+  startsAt: string;
+  endsAt: string;
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  bookedVia: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ServicesResponse {
+  services: Service[];
+}
+
+export interface AppointmentsResponse {
+  upcoming: Appointment[];
+  past: Appointment[];
+}
+
+export interface CreateAppointmentInput {
+  serviceType: string;
+  startsAt: string;
+  notes?: string;
+}
