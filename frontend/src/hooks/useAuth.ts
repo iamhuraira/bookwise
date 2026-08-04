@@ -11,11 +11,17 @@ const ME_QUERY_KEY = ['auth', 'me'] as const;
 
 /** Wait for zustand persist to load token from storage before auth checks. */
 export const useAuthHydration = () => {
-  const [hydrated, setHydrated] = useState(() => useAuthStore.persist.hasHydrated());
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    setHydrated(useAuthStore.persist.hasHydrated());
-    return useAuthStore.persist.onFinishHydration(() => setHydrated(true));
+    const markHydrated = () => setHydrated(true);
+
+    if (useAuthStore.persist.hasHydrated()) {
+      markHydrated();
+      return;
+    }
+
+    return useAuthStore.persist.onFinishHydration(markHydrated);
   }, []);
 
   return hydrated;

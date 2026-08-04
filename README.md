@@ -90,6 +90,44 @@ NEXT_PUBLIC_API_URL=http://localhost:4000/api
 | `npm run dev` | Start backend and frontend together |
 | `npm run dev:backend` | Start backend only (port 4000) |
 | `npm run dev:frontend` | Start frontend only (port 3000) |
+| `npm run build` | Build backend for production |
+| `npm run build:frontend` | Build frontend for production |
+| `npm start` | Run backend production server |
+
+## Deploy backend on Render
+
+The repo includes a [`render.yaml`](./render.yaml) blueprint for **bookwise-api** (backend only).
+
+### Option A — Blueprint (recommended)
+
+1. In Render: **New → Blueprint** → connect this repo
+2. Set secret env vars when prompted: `DATABASE_URL`, `JWT_SECRET`, `MISTRAL_API_KEY`, `FRONTEND_URL`
+3. Deploy
+
+### Option B — Manual web service
+
+| Setting | Value |
+|---------|-------|
+| Root Directory | *(leave empty — repo root)* |
+| Build Command | `npm install && npm run build --workspace=backend` |
+| Start Command | `npm run start --workspace=backend` |
+
+**Required env vars:**
+
+| Variable | Example |
+|----------|---------|
+| `DATABASE_URL` | `postgresql://...` (Supabase connection string) |
+| `JWT_SECRET` | long random string |
+| `FRONTEND_URL` | `http://localhost:3000` (or your frontend URL for CORS) |
+| `MISTRAL_API_KEY` | your Mistral key (for chat) |
+
+Optional: `JWT_EXPIRES_IN`, `DEFAULT_BUSINESS_ID`, `MISTRAL_MODEL`, `PORT` (Render sets `PORT` automatically).
+
+> Do **not** use `npm` alone as the build command.
+
+After deploy, test: `curl https://your-service.onrender.com/api/health`
+
+Run the frontend locally and point `NEXT_PUBLIC_API_URL` at your Render API URL.
 
 ## Verify setup
 
