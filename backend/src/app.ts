@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.routes.js';
 import businessRoutes from './routes/business.routes.js';
 import appointmentRoutes from './routes/appointment.routes.js';
 import servicesRoutes from './routes/services.routes.js';
+import chatRoutes from './routes/chat.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/logger.js';
 
@@ -28,6 +29,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/business', businessRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/services', servicesRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({

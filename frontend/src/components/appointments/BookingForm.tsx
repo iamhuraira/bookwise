@@ -24,12 +24,13 @@ interface BookingFormProps {
   initialValues?: BookingFormInitialValues;
   // reused later by the chatbot fallback booking flow
   onSuccess?: (appointment: Appointment) => void;
+  embedded?: boolean;
 }
 
 const selectClassName =
   'block w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-900 shadow-sm transition hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-0';
 
-const BookingForm = ({ initialValues, onSuccess }: BookingFormProps) => {
+const BookingForm = ({ initialValues, onSuccess, embedded = false }: BookingFormProps) => {
   const { data: servicesData, isLoading: servicesLoading } = useServices();
   const createAppointment = useCreateAppointment();
 
@@ -66,10 +67,11 @@ const BookingForm = ({ initialValues, onSuccess }: BookingFormProps) => {
       { serviceType, startsAt, notes: notes.trim() || undefined },
       {
         onSuccess: (data) => {
+          onSuccess?.(data.appointment);
+          if (embedded) return;
           const summary = formatBookingSummary(services, serviceType, date, time);
           setBookedAppointment(data.appointment);
           setSuccessSummary(summary);
-          onSuccess?.(data.appointment);
         },
         onError: (err) => {
           if (err.code === 'SLOT_TAKEN') {

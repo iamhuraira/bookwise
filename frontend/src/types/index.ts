@@ -74,3 +74,44 @@ export interface CreateAppointmentInput {
   startsAt: string;
   notes?: string;
 }
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  at: string;
+  failed?: boolean;
+  clientId?: string;
+}
+
+export interface ChatSession {
+  id: string;
+  status: string;
+  createdAt?: string;
+}
+
+export interface ChatSessionResponse {
+  session: ChatSession;
+  messages: ChatMessage[];
+}
+
+export interface ChatMessagesResponse {
+  messages: ChatMessage[];
+  status: string;
+}
+
+export interface ChatFormDefaults {
+  serviceType?: string;
+  service_type?: string;
+  date?: string;
+  time?: string;
+  notes?: string;
+}
+
+export type ChatAction = 'show_form' | 'booking_confirmed' | null;
+
+export interface SendMessageResponse {
+  reply: ChatMessage;
+  action: ChatAction;
+  formDefaults?: ChatFormDefaults;
+  appointment?: Appointment;
+}

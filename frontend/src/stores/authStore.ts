@@ -1,7 +1,7 @@
 // Client state only. All server data lives in TanStack Query.
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import type { User } from '@/types';
 
 interface AuthState {
@@ -21,6 +21,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'bookwise-auth',
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ token: state.token }),
     },
   ),

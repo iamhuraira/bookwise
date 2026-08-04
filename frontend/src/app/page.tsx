@@ -61,6 +61,28 @@ const Dashboard = () => {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        <div className="mb-8 rounded-2xl border border-indigo-100 bg-indigo-50 p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-lg font-semibold text-white">
+              B
+            </div>
+            <div>
+              <h2 className="font-semibold text-gray-900">
+                Book with our AI assistant — just tell it what you need
+              </h2>
+              <p className="mt-1 text-sm text-indigo-900/70">
+                Natural conversation booking, with a form fallback when you prefer.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/chat"
+            className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 sm:mt-0 sm:w-auto"
+          >
+            Start chatting
+          </Link>
+        </div>
+
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Welcome back, {firstName} 👋</h1>
@@ -68,7 +90,7 @@ const Dashboard = () => {
           </div>
           <Link
             href="/appointments/new"
-            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           >
             Book appointment
           </Link>

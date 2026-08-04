@@ -141,6 +141,7 @@ const handleSlotConflict = (err: unknown): never => {
 export const createAppointment = async (
   userId: string,
   input: CreateAppointmentInput,
+  bookedVia: 'form' | 'chat' = 'form',
 ): Promise<Appointment> => {
   const service = getServiceById(input.serviceType);
   if (!service) {
@@ -155,7 +156,7 @@ export const createAppointment = async (
   try {
     const result = await query(
       `INSERT INTO appointments (business_id, user_id, service_type, starts_at, ends_at, booked_via, notes)
-       VALUES ($1, $2, $3, $4, $5, 'form', $6)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING ${APPOINTMENT_FIELDS}`,
       [
         DEFAULT_BUSINESS_ID, // single-tenant prototype — all bookings go to the default business
@@ -163,6 +164,7 @@ export const createAppointment = async (
         input.serviceType,
         startsAt.toISOString(),
         endsAt.toISOString(),
+        bookedVia,
         input.notes ?? null,
       ],
     );
