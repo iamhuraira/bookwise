@@ -14,13 +14,26 @@ const app = express();
 // Render (and other reverse proxies) set X-Forwarded-For; required for rate limiting
 app.set('trust proxy', 1);
 
-const corsOrigins = [
-  process.env.FRONTEND_URL,
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-].filter(Boolean) as string[];
+const normalizeOrigin = (url: string): string => url.replace(/\/$/, '');
 
-app.use(cors({ origin: corsOrigins }));
+const allowedOrigins = new Set(
+  [process.env.FRONTEND_URL, 'http://localhost:3000', 'http://127.0.0.1:3000']
+    .filter(Boolean)
+    .map((origin) => normalizeOrigin(origin as string)),
+);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow non-browser clients (curl, health checks) with no Origin header
+      if (!origin || allowedOrigins.has(normalizeOrigin(origin))) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`CORS blocked origin: ${origin}`));
+    },
+  }),
+);
 app.use(requestLogger);
 app.use(express.json());
 

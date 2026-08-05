@@ -4,7 +4,7 @@ BookWise is a full-stack **appointment booking system** for a medical clinic —
 
 **Links**
 
-- Live demo (frontend): [PLACEHOLDER_FRONTEND_URL]
+- Live demo (frontend): [https://bookwise-frontend-omega.vercel.app/](https://bookwise-frontend-omega.vercel.app/)
 - Demo video: [PLACEHOLDER_VIDEO_URL]
 - Demo credentials: `iamhuraira429@gmail.com` / `4123004abh`
 - Live API (backend): `https://bookwise-eh6p.onrender.com/api` *(example — replace if redeployed)*
@@ -129,7 +129,7 @@ cp backend/.env.example backend/.env
 | `DEFAULT_BUSINESS_ID` | No | Default `11111111-1111-1111-1111-111111111111` (must match seed) |
 | `MISTRAL_API_KEY` | Yes (chat) | Free key at [console.mistral.ai](https://console.mistral.ai) |
 | `MISTRAL_MODEL` | No | Default `mistral-small-latest` |
-| `FRONTEND_URL` | Yes | CORS origin, e.g. `http://localhost:3000` |
+| `FRONTEND_URL` | Yes | CORS origin — **no trailing slash**, e.g. `http://localhost:3000` or `https://bookwise-frontend-omega.vercel.app` |
 
 **Frontend:**
 
@@ -321,7 +321,7 @@ See `render.yaml` blueprint or configure manually:
 | Build Command | `npm install && npm run build` (from `backend/`) **or** `npm install && npm run build --workspace=backend` |
 | Start Command | `npm run start` **or** `npm run start --workspace=backend` |
 
-Use Supabase **Session pooler** `DATABASE_URL` on Render. Set `FRONTEND_URL` to your frontend origin for CORS.
+Use Supabase **Session pooler** `DATABASE_URL` on Render. Set `FRONTEND_URL` to your frontend origin for CORS (no trailing slash).
 
 ---
 
