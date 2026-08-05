@@ -5,7 +5,7 @@ BookWise is a full-stack **appointment booking system** for a medical clinic —
 **Links**
 
 - Live demo (frontend): [https://bookwise-frontend-omega.vercel.app/](https://bookwise-frontend-omega.vercel.app/)
-- Demo video: [PLACEHOLDER_VIDEO_URL]
+- Demo video: [https://www.loom.com/share/08a29b81685148e290d9f2a3865a4e17](https://www.loom.com/share/08a29b81685148e290d9f2a3865a4e17)
 - Demo credentials: `iamhuraira429@gmail.com` / `4123004abh`
 - Live API (backend): `https://bookwise-eh6p.onrender.com/api` *(example — replace if redeployed)*
 
