@@ -143,6 +143,9 @@ const BookingForm = ({ initialValues, onSuccess, embedded = false }: BookingForm
             </option>
           ))}
         </select>
+        <p className="text-xs text-gray-500">
+          All appointments use 30-minute slots (Mon–Fri, 9:00–17:00).
+        </p>
       </div>
 
       <Input

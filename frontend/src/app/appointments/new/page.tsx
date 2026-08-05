@@ -18,7 +18,7 @@ const NewAppointmentPage = () => (
             </Link>
             <h1 className="mt-3 text-2xl font-bold text-gray-900">Book an appointment</h1>
             <p className="mt-1 text-sm text-gray-500">
-              Choose a service, date, and time within business hours (Mon–Fri, 9:00–17:00).
+              Choose a service, date, and 30-minute time slot (Mon–Fri, 9:00–17:00).
             </p>
           </div>
           <BookingForm />

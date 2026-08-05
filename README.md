@@ -1,140 +1,356 @@
-# BookWise
+# BookWise — AI-Assisted Appointment Booking
 
-A booking platform with forms and AI chat.
+BookWise is a full-stack **appointment booking system** for a medical clinic — users book via a conversational AI assistant (with a pre-filled form fallback) or a traditional booking form. Built as a Senior Full Stack Developer assessment: Express + PostgreSQL backend, Next.js frontend, Mistral-powered intent extraction with strict separation between AI parsing and business logic.
 
-## Structure
+**Links**
+
+- Live demo (frontend): [PLACEHOLDER_FRONTEND_URL]
+- Demo video: [PLACEHOLDER_VIDEO_URL]
+- Demo credentials: `iamhuraira429@gmail.com` / `4123004abh`
+- Live API (backend): `https://bookwise-eh6p.onrender.com/api` *(example — replace if redeployed)*
+
+---
+
+## Features
+
+- **JWT authentication** — signup, login, bcrypt password hashing, protected routes
+- **Conversational booking** — multi-turn chat with session memory (`service_type`, date, time, notes)
+- **Form-based booking** — standalone page + inline form in chat when AI struggles
+- **AI → form fallback** — after 3 confused/off-topic turns or AI failure, returns `show_form` with pre-filled defaults
+- **Appointment dashboard** — upcoming/past lists, cancel pending/confirmed appointments
+- **Double-booking prevention** — PostgreSQL GiST exclusion constraint; API maps `23P01` → `409 SLOT_TAKEN`
+- **Rate limiting** — auth endpoints (10 / 15 min), chat messages (20 / min)
+- **AI interaction logging** — structured JSON logs per Mistral call (intent, latency; no message bodies)
+- **Server-side validation** — business hours, future dates, `ends_at` computed server-side
+
+---
+
+## Architecture
 
 ```
-bookwise/
-├── backend/    # Express API (Node.js, PostgreSQL)
-└── frontend/   # Next.js app (App Router, Tailwind CSS)
+┌─────────────────────────────────────────────────────────────────┐
+│  Next.js 15 (App Router) — localhost:3000                       │
+│  TanStack Query (server state) · Zustand (auth token only)        │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ REST / JSON  { data } | { error }
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Express API — /api/*                                           │
+│  cors → requestLogger → express.json → routes → errorHandler    │
+│  Per-route: requireAuth · validate(zod) · rateLimit               │
+└──────┬──────────────────────────────┬───────────────────────────┘
+       │                              │
+       │  pg (raw SQL)                │  HTTPS (15s timeout)
+       ▼                              ▼
+┌──────────────────┐         ┌─────────────────────┐
+│  PostgreSQL      │         │  Mistral API         │
+│  (Supabase)      │         │  (ai.service.ts)     │
+│                  │         │  JSON extraction ONLY│
+└──────────────────┘         └──────────┬──────────┘
+                                        │ called by
+                                        ▼
+                              ┌─────────────────────┐
+                              │  chat.service.ts     │
+                              │  (orchestrator)      │
+                              │  decision tree       │
+                              └──────────┬──────────┘
+                                         │ on complete
+                                         ▼
+                              ┌─────────────────────┐
+                              │ appointment.service  │
+                              │ rules + INSERT       │
+                              └─────────────────────┘
 ```
 
-## Prerequisites
+**Layering:** `routes → controllers → services → db`. Controllers are thin; services own business logic.
 
-- Node.js 20+
-- PostgreSQL database (local or hosted, e.g. Supabase)
+**Critical boundary:** `ai.service.ts` converts conversation → structured JSON only. It never touches the database, never creates appointments, and never decides what action to take. `chat.service.ts` (orchestrator) merges extracted fields, runs the decision tree, and calls `appointment.service.ts` to execute bookings with full validation. The AI never writes to the database.
 
-## Setup
+---
 
-1. Clone the repo and go to the project root:
+## Tech Stack
+
+| Layer | Choice | Why |
+|-------|--------|-----|
+| Frontend | Next.js 15 (App Router) | File-based routing, React 19, production build |
+| Styling | Tailwind CSS 3 | Utility-first, fast iteration |
+| Server state | TanStack Query 5 | Caching, mutations, optimistic chat updates |
+| Client auth | Zustand + persist | Token in `localStorage`; all other data in Query |
+| Backend | Express 4 + TypeScript | Simple REST, explicit middleware chain |
+| Database | PostgreSQL (Supabase hosted) | Managed Postgres; app uses raw `pg`, not Supabase SDK |
+| SQL | `pg` pool, hand-written queries | Portable, no ORM magic; assessment evaluates *my* data layer |
+| AI | `@mistralai/mistralai` | Structured JSON extraction via `json_object` response format |
+| Auth | JWT + bcrypt | Stateless API; works across separate frontend/backend deploys |
+| Validation | Zod v4 | Request schemas + shared types |
+| Rate limits | `express-rate-limit` | Protect auth and AI budget |
+
+---
+
+## Running Locally
+
+### Prerequisites
+
+- **Node.js 20+** (no `engines` field in `package.json`; tested with Node 20–24)
+- **npm** (workspaces monorepo at repo root)
+- **Supabase** project (free tier) for PostgreSQL
+
+### 1. Clone and install
 
 ```bash
+git clone https://github.com/iamhuraira/bookwise.git
 cd bookwise
-```
-
-2. Install dependencies (root + workspaces):
-
-```bash
 npm install
 ```
 
-3. Create environment files from the examples:
+Installs root, `backend/`, and `frontend/` workspaces.
+
+### 2. Database setup
+
+1. Create a [Supabase](https://supabase.com) project.
+2. Open **SQL Editor** → paste and run `backend/src/db/schema.sql`.
+3. (Optional) Run `backend/src/db/seed.sql` — inserts default business `Shifa Medical Clinic, Lahore`.
+
+See `backend/src/db/README.md` for design notes.
+
+### 3. Environment variables
+
+**Backend** — copy and fill:
 
 ```bash
 cp backend/.env.example backend/.env
+```
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PORT` | No | Default `4000` |
+| `DATABASE_URL` | Yes | PostgreSQL URI. **Local:** direct connection (`db.<ref>.supabase.co:5432`). **Render/cloud:** use Supabase **Session pooler** URI (`postgres.<ref>@...pooler.supabase.com:5432`) |
+| `JWT_SECRET` | Yes | Signing key. Generate: `openssl rand -base64 48` |
+| `JWT_EXPIRES_IN` | No | Default `1d` |
+| `DEFAULT_BUSINESS_ID` | No | Default `11111111-1111-1111-1111-111111111111` (must match seed) |
+| `MISTRAL_API_KEY` | Yes (chat) | Free key at [console.mistral.ai](https://console.mistral.ai) |
+| `MISTRAL_MODEL` | No | Default `mistral-small-latest` |
+| `FRONTEND_URL` | Yes | CORS origin, e.g. `http://localhost:3000` |
+
+**Frontend:**
+
+```bash
 cp frontend/.env.example frontend/.env.local
 ```
 
-4. Fill in the values below in `backend/.env` and `frontend/.env.local`.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_API_URL` | Yes | Backend base including `/api`, e.g. `http://localhost:4000/api` |
 
-5. Start both apps:
+### 4. Start dev servers
 
 ```bash
 npm run dev
 ```
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:4000/api
+- Frontend: http://localhost:3000  
+- Backend: http://localhost:4000/api  
 
-## Environment variables
+### 5. Verify
 
-### Backend (`backend/.env`)
+```bash
+curl http://localhost:4000/api/health
+# {"status":"ok"}
 
-| Variable | Required | Example | Description |
-|----------|----------|---------|-------------|
-| `PORT` | No | `4000` | Port the Express server listens on |
-| `DATABASE_URL` | Yes | `postgresql://user:pass@host:5432/postgres` | PostgreSQL connection string |
-| `JWT_SECRET` | Yes | `your-long-random-secret-string` | Secret used to sign JWT tokens |
-| `MISTRAL_API_KEY` | Later | `your-mistral-api-key` | API key for Mistral AI chat (not needed for initial setup) |
-| `FRONTEND_URL` | Yes | `http://localhost:3000` | Allowed CORS origin for the frontend |
-
-Example `backend/.env`:
-
-```env
-PORT=4000
-DATABASE_URL=postgresql://postgres:password@db.example.com:5432/postgres
-JWT_SECRET=BookWise keeps your bookings safe with a strong secret key for every session.
-MISTRAL_API_KEY=
-FRONTEND_URL=http://localhost:3000
+curl http://localhost:4000/api/services
+# {"data":{"services":[...]}}
 ```
 
-### Frontend (`frontend/.env.local`)
+Open http://localhost:3000 → sign up → book via chat or `/appointments/new`.
 
-| Variable | Required | Example | Description |
-|----------|----------|---------|-------------|
-| `NEXT_PUBLIC_API_URL` | Yes | `http://localhost:4000/api` | Base URL for backend API requests |
+---
 
-Example `frontend/.env.local`:
+## API Overview
 
-```env
-NEXT_PUBLIC_API_URL=http://localhost:4000/api
+**Envelope:** Success `{ "data": ... }` · Error `{ "error": { "message", "code", "details?" } }`
+
+**Exception:** `GET /api/health` returns `{ "status": "ok" }` (no wrapper).
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| GET | `/api/health` | No | Liveness |
+| POST | `/api/auth/signup` | No | Register customer |
+| POST | `/api/auth/login` | No | Login, returns JWT |
+| GET | `/api/auth/me` | Yes | Current user |
+| GET | `/api/business` | Yes | Business name for logged-in user |
+| GET | `/api/services` | No | Service catalog |
+| GET | `/api/appointments` | Yes | Upcoming + past appointments |
+| POST | `/api/appointments` | Yes | Create appointment (`booked_via: form`) |
+| PATCH | `/api/appointments/:id/cancel` | Yes | Cancel own appointment |
+| POST | `/api/chat/sessions` | Yes | Close prior sessions, create new chat |
+| GET | `/api/chat/sessions/:id/messages` | Yes | Poll messages + status |
+| POST | `/api/chat/sessions/:id/messages` | Yes | Send message, run AI + decision tree |
+
+**Common status codes:** `400` validation · `401` auth · `403` not owner · `404` not found · `409` conflict (slot taken, email taken, session closed) · `429` rate limited · `500` unexpected
+
+---
+
+## How the AI Booking Flow Works
+
+One user message lifecycle:
+
+1. **Persist user message** — append to `chat_sessions.context.messages` (JSONB).
+2. **Build AI prompt** — system prompt includes today's date/timezone, service catalog, business hours (Mon–Fri 9–17, 30-min slots), and `knownBooking` fields already collected.
+3. **Single Mistral call** — `responseFormat: json_object`, temperature `0.2`, 15s timeout. Returns `{ intent, service_type, date, time, notes, reply }`.
+4. **Validate & sanitize** — regex-check date/time; whitelist intent and service IDs.
+5. **Merge into session** — non-null extracted fields update `context.booking`; new fields reset `attempts` to 0.
+6. **Decision tree** (`chat.service.ts`):
+   - AI failure → `show_form` (no attempt penalty)
+   - Not `book_appointment` intent → greeting: reply only; off-topic/other: increment attempts → form after **3** attempts
+   - `book_appointment` but incomplete → AI reply asks **one** missing field; form after 3 attempts
+   - Complete → `appointment.service.createAppointment(..., 'chat')` → `booking_confirmed`, session `closed`
+   - Booking errors → clear bad fields, ask again (`SLOT_TAKEN`, `INVALID_DATE`, `OUTSIDE_BUSINESS_HOURS`)
+7. **Respond** — `{ reply, action, formDefaults?, appointment? }` in same HTTP response.
+
+**Guardrails**
+
+- Forced `json_object` response format from Mistral
+- 15s timeout; failure → form fallback
+- Field-level sanitization of all AI output
+- Business rules in `appointment.service` (hours, future date, duration)
+- GiST exclusion constraint as final safety net against races
+- Structured `ai_interaction` logs (no raw message content)
+
+---
+
+## Key Design Decisions & Tradeoffs
+
+### 1. Polling over WebSockets
+
+Chat is strictly request→response: the assistant reply returns in the same `POST /messages` response. Frontend also polls `GET /messages` every **3s** (pauses while sending). WebSockets earn their complexity only when the server pushes unprompted events (live agent handoff, streaming). At this scale, polling is simpler and good enough.
+
+### 2. JWT over server sessions
+
+The frontend and backend can run on different domains (e.g. Vercel + Render) without a shared session database. After login, the API returns a JWT; the frontend sends it on each request. Tokens expire after 1 day. Stored in `localStorage` — simple for a SPA, with the usual XSS tradeoff.
+
+### 3. Raw `pg` over Supabase SDK / ORM
+
+Supabase is used purely as managed Postgres. The assessment evaluates my auth, API, and data layer. Raw SQL keeps the backend portable to any Postgres host.
+
+### 4. DB-level double-booking prevention
+
+GiST exclusion on `(business_id, tstzrange(starts_at, ends_at))` for `pending`/`confirmed` rows. No check-then-insert race. API maps Postgres `23P01` → `409 SLOT_TAKEN`. Assumption: one bookable resource per business (multi-staff would add `staff_id` to the constraint).
+
+### 5. AI / business-logic boundary
+
+The AI only reads the conversation and returns structured data (intent, date, time, etc.). It does not book appointments or touch the database. `chat.service.ts` decides what to do next (ask a question, show the form, or book). `appointment.service.ts` runs the actual booking with server-side rules. If the AI returns a bad date or time, validation and the database catch it. To switch AI providers, only `ai.service.ts` needs to change.
+
+### 6. Messages in `chat_sessions.context` JSONB
+
+One read + one write per turn; booking memory cannot desync from message history. Tradeoff: no cheap pagination. At scale: separate `chat_messages` table.
+
+### 7. Server computes `ends_at`
+
+Client sends only `startsAt` + `serviceType`. Duration comes from server catalog. Never trust client-derived end times.
+
+### 8. Cancel, never delete
+
+`PATCH .../cancel` sets `status = cancelled`. Partial exclusion index ignores cancelled rows, freeing the slot. Preserves audit trail.
+
+### 9. State management split
+
+TanStack Query owns **all** server data (appointments, chat, business, services). Zustand holds **only** the auth token (+ in-memory user). No duplicated sources of truth.
+
+### 10. Schema-first (no migrations)
+
+Requirements were fully specified upfront; `schema.sql` applied manually in Supabase SQL Editor. Production would use versioned migrations (Flyway, Drizzle, etc.).
+
+---
+
+## Database Design
+
+| Table | Purpose |
+|-------|---------|
+| `businesses` | Tenant/clinic records |
+| `users` | Auth; `business_id` links staff; customers get `DEFAULT_BUSINESS_ID` at signup |
+| `appointments` | Bookings with `starts_at`/`ends_at`, status, `booked_via` |
+| `chat_sessions` | `context` JSONB: messages + in-progress booking + attempt counter |
+
+**Indexes**
+
+- `idx_appointments_user` — dashboard list by user
+- `idx_appointments_business` — business-wide schedule queries
+- `idx_appointments_slot` — **partial** index on active slots only (`pending`/`confirmed`); cancelled/completed rows excluded → smaller index, faster availability checks
+- `idx_users_business` — staff lookup
+- `idx_sessions_user` — find user's chat sessions
+
+**Multi-tenancy:** `business_id` on appointments and sessions. Prototype assumes single tenant via `DEFAULT_BUSINESS_ID`.
+
+**At scale:** partition/archive old appointments, separate chat messages table, read replicas for list endpoints, connection pooler under load.
+
+---
+
+## Assumptions
+
+- Single business, single bookable resource (no staff/resource columns)
+- Business hours Mon–Fri 09:00–17:00; frontend time slots are 30-minute increments
+- Service catalog is hardcoded in `backend/src/config/services.ts` — all services use 30-minute duration
+- New chat session created on every `/chat` visit (prior active sessions closed)
+- No email/SMS notifications
+- No password reset; no timezone picker (server/client local offset embedded in ISO strings)
+- One user cannot have multiple active chat sessions (previous closed on new visit)
+
+---
+
+## Known Limitations & Next Steps
+
+- **Reschedule** — atomic cancel + rebook in one transaction
+- **Refresh tokens** — longer sessions with revocable refresh flow
+- **Separate `chat_messages` table** — pagination, analytics, cheaper appends
+- **Streaming AI responses** — SSE/WebSocket for token streaming
+- **Admin dashboard** — business view of all appointments
+- **Tests (priority order):**
+  1. `appointment.service` — business hours, future date, overlap → `SLOT_TAKEN`
+  2. `chat.service` decision tree with mocked AI responses
+  3. `errorHandler` — `23P01` → `409` mapping
+  4. Auth signup/login integration tests
+
+---
+
+## Deploy Backend on Render
+
+See `render.yaml` blueprint or configure manually:
+
+| Setting | Value |
+|---------|-------|
+| Root Directory | `backend` **or** repo root |
+| Build Command | `npm install && npm run build` (from `backend/`) **or** `npm install && npm run build --workspace=backend` |
+| Start Command | `npm run start` **or** `npm run start --workspace=backend` |
+
+Use Supabase **Session pooler** `DATABASE_URL` on Render. Set `FRONTEND_URL` to your frontend origin for CORS.
+
+---
+
+## Project Structure
+
+```
+bookwise/
+├── backend/          Express API, services, db schema
+├── frontend/         Next.js app
+├── docs/             architecture.md (interview deep-dive)
+├── render.yaml       Render blueprint (backend only)
+└── package.json      npm workspaces root
 ```
 
-> Restart the dev server after changing env files.
+---
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start backend and frontend together |
-| `npm run dev:backend` | Start backend only (port 4000) |
-| `npm run dev:frontend` | Start frontend only (port 3000) |
-| `npm run build` | Build backend for production |
-| `npm run build:frontend` | Build frontend for production |
+| `npm run dev` | Backend + frontend concurrently |
+| `npm run dev:backend` | Backend only (:4000) |
+| `npm run dev:frontend` | Frontend only (:3000) |
+| `npm run build` | Build backend |
+| `npm run build:frontend` | Build frontend |
 | `npm start` | Run backend production server |
 
-## Deploy backend on Render
+---
 
-The repo includes a [`render.yaml`](./render.yaml) blueprint for **bookwise-api** (backend only).
+## Further Reading
 
-### Option A — Blueprint (recommended)
-
-1. In Render: **New → Blueprint** → connect this repo
-2. Set secret env vars when prompted: `DATABASE_URL`, `JWT_SECRET`, `MISTRAL_API_KEY`, `FRONTEND_URL`
-3. Deploy
-
-### Option B — Manual web service
-
-| Setting | Value |
-|---------|-------|
-| Root Directory | *(leave empty — repo root)* |
-| Build Command | `npm install && npm run build --workspace=backend` |
-| Start Command | `npm run start --workspace=backend` |
-
-**Required env vars:**
-
-| Variable | Example |
-|----------|---------|
-| `DATABASE_URL` | `postgresql://...` (Supabase connection string) |
-| `JWT_SECRET` | long random string |
-| `FRONTEND_URL` | `http://localhost:3000` (or your frontend URL for CORS) |
-| `MISTRAL_API_KEY` | your Mistral key (for chat) |
-
-Optional: `JWT_EXPIRES_IN`, `DEFAULT_BUSINESS_ID`, `MISTRAL_MODEL`, `PORT` (Render sets `PORT` automatically).
-
-> Do **not** use `npm` alone as the build command.
-
-After deploy, test: `curl https://your-service.onrender.com/api/health`
-
-Run the frontend locally and point `NEXT_PUBLIC_API_URL` at your Render API URL.
-
-## Verify setup
-
-- Open http://localhost:3000 — the home page should show **Backend status: connected**
-- Or hit the health endpoint directly:
-
-```bash
-curl http://localhost:4000/api/health
-# {"status":"ok"}
-```
+- [`docs/architecture.md`](docs/architecture.md) — request lifecycle, decision tree, middleware order, exclusion constraint details
